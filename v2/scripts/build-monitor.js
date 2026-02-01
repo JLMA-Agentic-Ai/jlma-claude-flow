@@ -136,7 +136,12 @@ class BuildMonitor {
 
   async storeProgress(buildResult) {
     try {
-      exec(`npx ruv-swarm hook notification --message "BUILD PROGRESS: ${buildResult.errorCount} errors remaining (${this.errorCount - buildResult.errorCount} fixed)" --telemetry true`);
+      // SECURITY FIX: Use spawn with args array to prevent command injection
+      const { spawn } = require('child_process');
+      const message = `BUILD PROGRESS: ${buildResult.errorCount} errors remaining (${this.errorCount - buildResult.errorCount} fixed)`;
+      spawn('npx', ['ruv-swarm', 'hook', 'notification', '--message', message, '--telemetry', 'true'], {
+        stdio: 'ignore'
+      });
     } catch (error) {
       console.error('Failed to store progress:', error.message);
     }
@@ -147,7 +152,11 @@ class BuildMonitor {
     console.log(message);
     
     try {
-      exec(`npx ruv-swarm hook notification --message "${message}" --telemetry true`);
+      // SECURITY FIX: Use spawn with args array to prevent command injection
+      const { spawn } = require('child_process');
+      spawn('npx', ['ruv-swarm', 'hook', 'notification', '--message', message, '--telemetry', 'true'], {
+        stdio: 'ignore'
+      });
     } catch (error) {
       console.error('Failed to alert swarm:', error.message);
     }

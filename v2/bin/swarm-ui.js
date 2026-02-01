@@ -620,10 +620,18 @@ class SwarmUI {
               .map((line) => line.trim())
               .filter((line) => /^\d+$/.test(line));
 
+            // SECURITY FIX: Validate PID and use spawn with args array
             pids.forEach((pid) => {
-              exec(`taskkill /F /PID ${pid}`, (killError) => {
-                if (!killError) {
-                  this.log(`Stopped orphaned process PID: ${pid}`);
+              const pidNumber = parseInt(pid, 10);
+              if (isNaN(pidNumber) || pidNumber <= 0) return;
+
+              const { spawn } = require('child_process');
+              const killProcess = spawn('taskkill', ['/F', '/PID', pidNumber.toString()], {
+                stdio: 'ignore'
+              });
+              killProcess.on('close', (code) => {
+                if (code === 0) {
+                  this.log(`Stopped orphaned process PID: ${pidNumber}`);
                 }
               });
             });

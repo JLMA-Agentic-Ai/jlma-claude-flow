@@ -351,7 +351,9 @@ export class MemoryConsolidator {
       try {
         // Attach the source database
         const alias = `db_${path.basename(dbFile, '.db')}`;
-        await db.exec(`ATTACH DATABASE '${dbFile}' AS ${alias}`);
+        // SECURITY FIX: Use parameterized query to prevent SQL injection
+        const attachStmt = db.prepare(`ATTACH DATABASE ? AS ${alias}`);
+        await attachStmt.run(dbFile);
         
         // Get tables from source database
         const tables = await db.all(`

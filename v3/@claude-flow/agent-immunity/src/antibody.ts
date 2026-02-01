@@ -5,9 +5,10 @@
  */
 
 import type { ImmunityViolation } from './immunity-service';
+import type { ActionData, LegacyRepairSuggestion as RepairSuggestion } from './types';
 
 /**
- * Repair suggestion for immunity violations
+ * Repair suggestion for immunity violations (Legacy Interface)
  */
 export interface RepairSuggestion {
   type: 'replace' | 'modify' | 'remove' | 'add';
@@ -36,7 +37,7 @@ export interface AntibodyReport {
  * Acts as the "antibody" component of the biological immune system metaphor.
  */
 export class AntibodyService {
-  private repairStrategies = new Map<string, (violation: ImmunityViolation, actionData: any) => RepairSuggestion[]>();
+  private repairStrategies = new Map<string, (violation: ImmunityViolation, actionData: ActionData) => RepairSuggestion[]>();
 
   constructor() {
     this.initializeRepairStrategies();
@@ -46,7 +47,7 @@ export class AntibodyService {
    * Generate repair suggestions for immunity violations
    */
   public async generateRepairSuggestions(
-    actionData: any,
+    actionData: ActionData,
     violations: ImmunityViolation[]
   ): Promise<AntibodyReport> {
     const allSuggestions: RepairSuggestion[] = [];
@@ -70,8 +71,8 @@ export class AntibodyService {
 
     // Sort suggestions by priority
     allSuggestions.sort((a, b) => {
-      const priorityOrder = { critical: 4, high: 3, medium: 2, low: 1 };
-      return priorityOrder[b.priority] - priorityOrder[a.priority];
+      const priorityOrder: Record<string, number> = { critical: 4, high: 3, medium: 2, low: 1 };
+      return (priorityOrder[b.priority] || 0) - (priorityOrder[a.priority] || 0);
     });
 
     // Estimate repair effort
@@ -101,7 +102,7 @@ export class AntibodyService {
    */
   private async generateSuggestionsForViolation(
     violation: ImmunityViolation,
-    actionData: any
+    actionData: ActionData
   ): Promise<RepairSuggestion[]> {
     const strategy = this.repairStrategies.get(violation.type);
 
@@ -123,20 +124,13 @@ export class AntibodyService {
       if (suggestion.automated) {
         totalEffort += 0.1; // 6 minutes for automated
       } else {
-        switch (suggestion.priority) {
-          case 'critical':
-            totalEffort += 4;
-            break;
-          case 'high':
-            totalEffort += 2;
-            break;
-          case 'medium':
-            totalEffort += 1;
-            break;
-          case 'low':
-            totalEffort += 0.5;
-            break;
-        }
+        const effortMap: Record<string, number> = {
+          critical: 4,
+          high: 2,
+          medium: 1,
+          low: 0.5
+        };
+        totalEffort += effortMap[suggestion.priority] || 1;
       }
     }
 
@@ -163,7 +157,7 @@ export class AntibodyService {
         description: 'Add security validation layer',
         priority: 'high',
         automated: false,
-        implementation: 'Implement @claude-flow/aidefence validation'
+        implementation: 'Implement @claude-flow/security validation'
       }
     ]);
 
@@ -242,6 +236,128 @@ export class AntibodyService {
         automated: false
       }
     ]);
+
+    // Extended immunity repair strategies (ADR-001)
+    this.initializeExtendedRepairStrategies();
+  }
+
+  /**
+   * Initialize repair strategies for extended immunities (ADR-001)
+   */
+  private initializeExtendedRepairStrategies(): void {
+    // Privacy/PII violation repairs
+    this.repairStrategies.set('privacy_violation', (violation, actionData) => [
+      {
+        type: 'modify',
+        target: 'action.input',
+        description: 'Mask or redact detected PII using privacy-preserving techniques',
+        priority: 'critical',
+        automated: true,
+        implementation: 'Apply PII masking patterns and data anonymization'
+      },
+      {
+        type: 'add',
+        target: 'action.privacy',
+        description: 'Add privacy validation layer with consent management',
+        priority: 'high',
+        automated: false
+      }
+    ]);
+
+    // Cost/token efficiency violation repairs
+    this.repairStrategies.set('excessive_tokens', (violation, actionData) => [
+      {
+        type: 'modify',
+        target: 'action.prompt',
+        description: 'Optimize prompt to reduce token consumption',
+        priority: 'high',
+        automated: true,
+        implementation: 'Apply token optimization patterns and compression'
+      },
+      {
+        type: 'add',
+        target: 'action.monitoring',
+        description: 'Add token usage monitoring and alerting',
+        priority: 'medium',
+        automated: false
+      }
+    ]);
+
+    // Observability gap repairs
+    this.repairStrategies.set('observability_gap', (violation, actionData) => [
+      {
+        type: 'add',
+        target: 'action.logging',
+        description: 'Add structured logging with appropriate levels',
+        priority: 'medium',
+        automated: true,
+        implementation: 'Inject logging statements at key execution points'
+      },
+      {
+        type: 'add',
+        target: 'action.tracing',
+        description: 'Add distributed tracing for request correlation',
+        priority: 'low',
+        automated: false
+      }
+    ]);
+
+    // Accessibility violation repairs
+    this.repairStrategies.set('aria_violations', (violation, actionData) => [
+      {
+        type: 'add',
+        target: 'action.aria',
+        description: 'Add missing ARIA labels and semantic markup',
+        priority: 'high',
+        automated: true,
+        implementation: 'Inject aria-label, role, and semantic HTML attributes'
+      },
+      {
+        type: 'modify',
+        target: 'action.ui',
+        description: 'Refactor UI components for better accessibility',
+        priority: 'medium',
+        automated: false
+      }
+    ]);
+
+    // Reproducibility violation repairs
+    this.repairStrategies.set('non_deterministic_behavior', (violation, actionData) => [
+      {
+        type: 'replace',
+        target: 'action.randomness',
+        description: 'Replace random sources with seeded or deterministic alternatives',
+        priority: 'high',
+        automated: true,
+        implementation: 'Use seeded random generators or dependency injection'
+      },
+      {
+        type: 'add',
+        target: 'action.testing',
+        description: 'Add deterministic testing strategies',
+        priority: 'medium',
+        automated: false
+      }
+    ]);
+
+    // Documentation gap repairs
+    this.repairStrategies.set('insufficient_documentation', (violation, actionData) => [
+      {
+        type: 'add',
+        target: 'action.documentation',
+        description: 'Generate JSDoc/TSDoc comments for functions and classes',
+        priority: 'low',
+        automated: true,
+        implementation: 'Auto-generate documentation templates based on code analysis'
+      },
+      {
+        type: 'add',
+        target: 'action.examples',
+        description: 'Add usage examples and README documentation',
+        priority: 'low',
+        automated: false
+      }
+    ]);
   }
 
   /**
@@ -249,14 +365,14 @@ export class AntibodyService {
    */
   private generateGenericSuggestions(
     violation: ImmunityViolation,
-    actionData: any
+    actionData: ActionData
   ): RepairSuggestion[] {
     const suggestions: RepairSuggestion[] = [
       {
         type: 'modify',
         target: 'action.general',
         description: `Address ${violation.type} violation`,
-        priority: violation.severity as RepairSuggestion['priority'],
+        priority: violation.severity,
         automated: false,
         implementation: `Review and fix: ${violation.description}`
       }

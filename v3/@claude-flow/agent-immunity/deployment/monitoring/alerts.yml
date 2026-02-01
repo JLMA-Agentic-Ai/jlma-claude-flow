@@ -1,0 +1,209 @@
+# AIS Plugin Alert Rules for Production Monitoring
+
+groups:
+  # Critical Immunity Violations
+  - name: ais.immunity.critical
+    interval: 10s
+    rules:
+      - alert: ImmunityViolationHigh
+        expr: increase(ais_immunity_violations_total[5m]) > 5
+        for: 1m
+        labels:
+          severity: critical
+          service: ais-plugin
+          category: immunity
+        annotations:
+          summary: "High immunity violations detected"
+          description: "AIS Plugin has {{ $value }} immunity violations in the last 5 minutes. This indicates potential agent drift or security issues."
+          impact: "Agent behavior may be compromised"
+          action: "Check agent logs and immunity system status immediately"
+
+      - alert: ImmunitySystemDown
+        expr: up{job="ais-core"} == 0
+        for: 30s
+        labels:
+          severity: critical
+          service: ais-plugin
+          category: availability
+        annotations:
+          summary: "AIS Core service is down"
+          description: "The main AIS Plugin service is not responding to health checks."
+          impact: "No immunity protection for agents"
+          action: "Restart AIS service immediately and investigate cause"
+
+      - alert: SecurityImmunityCompromised
+        expr: ais_immunity_status{immunity="security"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          service: ais-plugin
+          category: security
+        annotations:
+          summary: "Security immunity compromised"
+          description: "Security immunity is reporting unhealthy status, agents may be vulnerable to injection attacks."
+          impact: "Potential security breach risk"
+          action: "Isolate affected agents and restart security immunity module"
+
+  # Performance SLA Violations
+  - name: ais.performance.sla
+    interval: 15s
+    rules:
+      - alert: ResponseTimeSLAViolation
+        expr: ais_response_time_ms > 30
+        for: 1m
+        labels:
+          severity: warning
+          service: ais-plugin
+          category: performance
+        annotations:
+          summary: "AIS response time exceeds SLA"
+          description: "AIS Plugin response time is {{ $value }}ms, exceeding the 30ms SLA threshold."
+          impact: "Degraded agent performance"
+          action: "Investigate performance bottlenecks and consider scaling"
+
+      - alert: HighMemoryUsage
+        expr: (process_memory_usage_bytes / process_memory_limit_bytes) * 100 > 80
+        for: 5m
+        labels:
+          severity: warning
+          service: ais-plugin
+          category: resources
+        annotations:
+          summary: "High memory usage in AIS Plugin"
+          description: "Memory usage is {{ $value }}% of allocated limit."
+          impact: "Risk of OOM kills and service disruption"
+          action: "Scale up memory allocation or investigate memory leaks"
+
+      - alert: ViolationRateHigh
+        expr: (increase(ais_immunity_violations_total[10m]) / increase(ais_requests_total[10m])) * 100 > 20
+        for: 3m
+        labels:
+          severity: warning
+          service: ais-plugin
+          category: immunity
+        annotations:
+          summary: "High immunity violation rate"
+          description: "{{ $value }}% of requests are triggering immunity violations."
+          impact: "Degraded immunity effectiveness"
+          action: "Review immunity thresholds and agent behavior patterns"
+
+  # Extended Immunities
+  - name: ais.extended.immunities
+    interval: 30s
+    rules:
+      - alert: TruthImmunityViolation
+        expr: ais_immunity_status{immunity="truth"} == 0
+        for: 2m
+        labels:
+          severity: high
+          service: ais-plugin
+          category: truth
+        annotations:
+          summary: "Truth immunity violation detected"
+          description: "Agents may be generating or accepting false information."
+          impact: "Compromised data integrity and decision making"
+          action: "Review agent outputs and knowledge base integrity"
+
+      - alert: PerformanceImmunityDegraded
+        expr: ais_immunity_status{immunity="performance"} == 0
+        for: 3m
+        labels:
+          severity: medium
+          service: ais-plugin
+          category: performance
+        annotations:
+          summary: "Performance immunity degraded"
+          description: "Performance immunity is reporting issues with agent efficiency."
+          impact: "Reduced system throughput and increased costs"
+          action: "Analyze performance metrics and optimize resource allocation"
+
+      - alert: CoherenceImmunityWarning
+        expr: ais_immunity_status{immunity="coherence"} == 0
+        for: 5m
+        labels:
+          severity: medium
+          service: ais-plugin
+          category: coherence
+        annotations:
+          summary: "Coherence immunity warning"
+          description: "Agent responses may be becoming inconsistent or contradictory."
+          impact: "Reduced user experience and trust"
+          action: "Review agent coordination and context management"
+
+  # Infrastructure Health
+  - name: ais.infrastructure
+    interval: 30s
+    rules:
+      - alert: RedisConnectionLost
+        expr: up{job="ais-redis"} == 0
+        for: 1m
+        labels:
+          severity: high
+          service: ais-plugin
+          category: infrastructure
+        annotations:
+          summary: "Redis connection lost"
+          description: "AIS Plugin has lost connection to Redis cache."
+          impact: "Reduced performance and potential state loss"
+          action: "Check Redis service health and network connectivity"
+
+      - alert: DiskSpaceLow
+        expr: (node_filesystem_avail_bytes / node_filesystem_size_bytes) * 100 < 10
+        for: 5m
+        labels:
+          severity: warning
+          service: ais-plugin
+          category: infrastructure
+        annotations:
+          summary: "Low disk space"
+          description: "Available disk space is {{ $value }}%."
+          impact: "Risk of service failure due to insufficient storage"
+          action: "Clean up old logs or expand storage capacity"
+
+      - alert: HighCPUUsage
+        expr: rate(container_cpu_usage_seconds_total[5m]) * 100 > 80
+        for: 10m
+        labels:
+          severity: warning
+          service: ais-plugin
+          category: infrastructure
+        annotations:
+          summary: "High CPU usage"
+          description: "CPU usage is {{ $value }}% for extended period."
+          impact: "Potential service degradation"
+          action: "Scale up CPU resources or investigate CPU-intensive operations"
+
+  # Business Logic Alerts
+  - name: ais.business.logic
+    interval: 60s
+    rules:
+      - alert: UnusualViolationPattern
+        expr: increase(ais_immunity_violations_total[1h]) > 100
+        for: 5m
+        labels:
+          severity: medium
+          service: ais-plugin
+          category: anomaly
+        annotations:
+          summary: "Unusual immunity violation pattern"
+          description: "{{ $value }} violations in the last hour, significantly above normal."
+          impact: "Possible systematic issue or attack"
+          action: "Investigate violation patterns and agent behavior"
+
+      - alert: NoRecentActivity
+        expr: increase(ais_requests_total[1h]) == 0
+        for: 30m
+        labels:
+          severity: low
+          service: ais-plugin
+          category: monitoring
+        annotations:
+          summary: "No recent AIS activity"
+          description: "No requests processed in the last hour."
+          impact: "Possible monitoring issue or service underutilization"
+          action: "Verify monitoring setup and service usage"
+
+# Global alert settings
+global:
+  # Wait time before sending notifications
+  resolve_timeout: 5m

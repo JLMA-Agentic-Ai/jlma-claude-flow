@@ -9,6 +9,12 @@ import { HookBuilder, HookEvent, HookPriority } from '@claude-flow/hooks';
 import { ImmunityService } from './immunity-service';
 import { AntibodyService } from './antibody';
 import type { HookContext, HookResult } from '@claude-flow/shared';
+import type {
+  CFHookContext,
+  CFHookResult,
+  ActionData,
+  Immunity
+} from './types';
 
 /**
  * Plugin configuration options
@@ -24,7 +30,7 @@ export interface ImmunityPluginConfig {
   enableLearning?: boolean;
 
   /** Custom immunity implementations */
-  customImmunities?: Record<string, any>;
+  customImmunities?: Record<string, new() => Immunity>;
 }
 
 /**
@@ -91,7 +97,7 @@ export class ImmunityPlugin {
   /**
    * Check agent action against immunity system
    */
-  private async checkAgentAction(context: HookContext): Promise<HookResult> {
+  private async checkAgentAction(context: HookContext | CFHookContext): Promise<HookResult | CFHookResult> {
     try {
       const startTime = Date.now();
 
@@ -154,14 +160,49 @@ export class ImmunityPlugin {
   /**
    * Extract action data from hook context
    */
-  private extractActionData(context: HookContext): any {
+  private extractActionData(context: HookContext | CFHookContext): ActionData {
     return {
       type: 'agent_spawn',
       timestamp: context.timestamp,
-      agent: context.agent,
-      task: context.task,
-      metadata: context.metadata,
-      correlationId: context.correlationId
+      agent: context.agent ? {
+        id: context.agent.id || 'unknown',
+        type: context.agent.type || 'unknown',
+        name: context.agent.name,
+        config: context.agent.config,
+        status: context.agent.status || 'idle',
+        capabilities: context.agent.capabilities || [],
+        version: context.agent.version
+      } : {
+        id: 'unknown',
+        type: 'unknown',
+        status: 'idle',
+        capabilities: []
+      },
+      task: context.task ? {
+        id: context.task.id || 'unknown',
+        type: context.task.type || 'unknown',
+        description: context.task.description || '',
+        priority: context.task.priority || 'medium',
+        status: context.task.status || 'pending',
+        createdAt: context.task.createdAt || new Date().toISOString(),
+        updatedAt: context.task.updatedAt || new Date().toISOString(),
+        dependencies: context.task.dependencies
+      } : {
+        id: 'unknown',
+        type: 'unknown',
+        description: '',
+        priority: 'medium',
+        status: 'pending',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      },
+      metadata: {
+        source: 'hook',
+        intent: 'agent_action',
+        riskLevel: 'medium',
+        ...(context.metadata || {})
+      },
+      correlationId: context.correlationId || `action-${Date.now()}`
     };
   }
 

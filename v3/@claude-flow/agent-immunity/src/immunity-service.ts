@@ -9,6 +9,31 @@ import { TruthImmunity } from './immunities/truth';
 import { CoherenceImmunity } from './immunities/coherence';
 import { PerformanceImmunity } from './immunities/performance';
 import { DependenciesImmunity } from './immunities/dependencies';
+import { ContextImmunity } from './immunities/context';
+import { ResourceImmunity } from './immunities/resource';
+import { NetworkImmunity } from './immunities/network';
+import { DataImmunity } from './immunities/data';
+import { BehaviorImmunity } from './immunities/behavior';
+import { ConsensusImmunity } from './immunities/consensus';
+
+// Extended immunities (ADR-001)
+import { PrivacyImmunity } from './immunities/extended/privacy';
+import { CostImmunity } from './immunities/extended/cost';
+import { ObservabilityImmunity } from './immunities/extended/observability';
+import { AccessibilityImmunity } from './immunities/extended/accessibility';
+import { ReproducibilityImmunity } from './immunities/extended/reproducibility';
+import { DocumentationImmunity } from './immunities/extended/documentation';
+
+// Utilities
+import { WeightValidator } from './utils/weight-validator';
+
+// Types
+import type {
+  ActionData,
+  ImmunityContext,
+  RepairSuggestion
+} from './types';
+import type { Immunity } from './types/immunity';
 
 /**
  * Immunity violation details
@@ -18,7 +43,7 @@ export interface ImmunityViolation {
   severity: 'low' | 'medium' | 'high' | 'critical';
   score: number;
   description: string;
-  details: Record<string, any>;
+  details: Record<string, unknown>;
 }
 
 /**
@@ -33,17 +58,8 @@ export interface ImmunityReport {
   actionId: string;
 }
 
-/**
- * Base immunity interface
- */
-export interface Immunity {
-  readonly name: string;
-  readonly weight: number;
-  analyze(actionData: any): Promise<{
-    score: number;
-    violations: ImmunityViolation[];
-  }>;
-}
+// Re-export enhanced Immunity interface from types
+export type { Immunity } from './types/immunity';
 
 /**
  * Immunity service configuration
@@ -51,7 +67,7 @@ export interface Immunity {
 export interface ImmunityServiceConfig {
   threshold: number;
   enableLearning: boolean;
-  customImmunities: Record<string, any>;
+  customImmunities: Record<string, new() => Immunity>;
 }
 
 /**
@@ -83,13 +99,25 @@ export class ImmunityService {
   public async initialize(): Promise<void> {
     console.log(`🛡️ Immunity Service: ${this.immunities.size} immunities registered`);
     console.log(`🎯 Safety threshold: ${this.threshold}`);
+
+    // Validate immunity weights
+    WeightValidator.normalizeImmunityWeights(this.immunities);
+
+    // Generate weight distribution report
+    const report = WeightValidator.generateWeightReport(this.immunities);
+    console.log(`📊 Weight distribution: Core ${report.categories.core.toFixed(2)} | Extended ${report.categories.extended.toFixed(2)}`);
+
+    if (report.recommendations.length > 0) {
+      console.log(`💡 Weight recommendations:`, report.recommendations);
+    }
+
     this.stats.activeImmunities = Array.from(this.immunities.keys());
   }
 
   /**
    * Analyze action against all registered immunities
    */
-  public async analyzeAction(actionData: any): Promise<ImmunityReport> {
+  public async analyzeAction(actionData: ActionData): Promise<ImmunityReport> {
     const startTime = Date.now();
     const actionId = actionData.correlationId || `action-${Date.now()}`;
 
@@ -188,19 +216,33 @@ export class ImmunityService {
 
   /**
    * Register default immunity implementations
+   *
+   * Core production-ready immunities: 11/11 total coverage for AIS production deployment
+   * Security-focused immunities designed for real-world threat prevention and agent protection
    */
   private registerDefaultImmunities(): void {
+    // Core immunities (original 5)
     this.registerImmunity('security', new SecurityImmunity());
     this.registerImmunity('truth', new TruthImmunity());
     this.registerImmunity('coherence', new CoherenceImmunity());
     this.registerImmunity('performance', new PerformanceImmunity());
     this.registerImmunity('dependencies', new DependenciesImmunity());
+
+    // Production-ready immunities (new 6)
+    this.registerImmunity('context', new ContextImmunity());
+    this.registerImmunity('resource', new ResourceImmunity());
+    this.registerImmunity('network', new NetworkImmunity());
+    this.registerImmunity('data', new DataImmunity());
+    this.registerImmunity('behavior', new BehaviorImmunity());
+    this.registerImmunity('consensus', new ConsensusImmunity());
+
+    console.log('🛡️ AIS Production Immunity System: 11/11 immunities registered for production deployment');
   }
 
   /**
    * Register custom immunity implementations
    */
-  private registerCustomImmunities(customImmunities: Record<string, any>): void {
+  private registerCustomImmunities(customImmunities: Record<string, new() => Immunity>): void {
     for (const [name, ImmunityClass] of Object.entries(customImmunities)) {
       try {
         const immunity = new ImmunityClass();
@@ -215,7 +257,7 @@ export class ImmunityService {
    * Learn from immunity violations (for future improvement)
    */
   private async learnFromViolation(
-    actionData: any,
+    actionData: ActionData,
     violations: ImmunityViolation[]
   ): Promise<void> {
     try {

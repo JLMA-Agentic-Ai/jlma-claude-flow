@@ -24,7 +24,7 @@ interface PerformancePattern {
  */
 export class PerformanceImmunity implements Immunity {
   public readonly name = 'performance';
-  public readonly weight = 0.6;
+  public readonly weight = 0.12; // 12% - Important for efficiency in ADR-001 weight distribution
 
   private performancePatterns: PerformancePattern[] = [
     {

@@ -1,0 +1,53 @@
+# Grafana datasource configuration for Prometheus
+apiVersion: 1
+
+datasources:
+  - name: prometheus
+    type: prometheus
+    access: proxy
+    url: http://ais-prometheus:9090
+    isDefault: true
+    editable: true
+    jsonData:
+      httpMethod: POST
+      queryTimeout: 60s
+      timeInterval: 15s
+      # Enable exemplars for tracing correlation
+      exemplarTraceIdDestinations:
+        - name: traceID
+          datasourceUid: jaeger-uid
+    secureJsonData: {}
+    version: 1
+
+  # Optional: Add Loki for log aggregation
+  - name: loki
+    type: loki
+    access: proxy
+    url: http://loki:3100
+    isDefault: false
+    editable: true
+    jsonData:
+      httpMethod: GET
+      maxLines: 1000
+    version: 1
+
+  # Optional: Add Jaeger for distributed tracing
+  - name: jaeger
+    type: jaeger
+    access: proxy
+    url: http://jaeger:16686
+    isDefault: false
+    editable: true
+    jsonData:
+      tracesToLogs:
+        datasourceUid: loki-uid
+        tags: ['job', 'instance', 'pod', 'namespace']
+        mappedTags: [
+          { key: 'service.name', value: 'service' },
+          { key: 'service.namespace', value: 'namespace' }
+        ]
+        mapTagNamesEnabled: true
+        spanStartTimeShift: '1h'
+        spanEndTimeShift: '1h'
+    uid: jaeger-uid
+    version: 1

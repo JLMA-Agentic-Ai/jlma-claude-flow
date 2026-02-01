@@ -36,7 +36,7 @@ interface LicenseIssue {
  */
 export class DependenciesImmunity implements Immunity {
   public readonly name = 'dependencies';
-  public readonly weight = 0.7;
+  public readonly weight = 0.10; // 10% - Security/maintenance in ADR-001 weight distribution
 
   private knownVulnerabilities: DependencyVulnerability[] = [
     {

@@ -716,11 +716,13 @@ export async function performMaintenance(dbPath, options = {}) {
         const archiveCutoff = new Date();
         archiveCutoff.setDate(archiveCutoff.getDate() - (options.taskRetentionDays || 7));
 
-        db.exec(`
-          INSERT INTO tasks_archive 
-          SELECT * FROM tasks 
-          WHERE status = 'completed' AND completed_at < '${archiveCutoff.toISOString()}'
+        // SECURITY FIX: Use parameterized query to prevent SQL injection
+        const archiveStmt = db.prepare(`
+          INSERT INTO tasks_archive
+          SELECT * FROM tasks
+          WHERE status = 'completed' AND completed_at < ?
         `);
+        archiveStmt.run(archiveCutoff.toISOString());
 
         archived = db
           .prepare(
@@ -735,11 +737,13 @@ export async function performMaintenance(dbPath, options = {}) {
         const archiveCutoff = new Date();
         archiveCutoff.setDate(archiveCutoff.getDate() - (options.taskRetentionDays || 7));
 
-        db.exec(`
-          INSERT INTO tasks_archive 
-          SELECT * FROM tasks 
-          WHERE status = 'completed' AND created_at < '${archiveCutoff.toISOString()}'
+        // SECURITY FIX: Use parameterized query to prevent SQL injection
+        const archiveCreatedStmt = db.prepare(`
+          INSERT INTO tasks_archive
+          SELECT * FROM tasks
+          WHERE status = 'completed' AND created_at < ?
         `);
+        archiveCreatedStmt.run(archiveCutoff.toISOString());
 
         archived = db
           .prepare(

@@ -6,10 +6,14 @@
   "types": "dist/index.d.ts",
   "scripts": {
     "build": "tsc",
-    "test": "jest",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
     "dev": "tsc --watch",
     "lint": "eslint src/**/*.ts",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "example:basic": "tsx examples/truth-immunity-integration.ts",
+    "bench": "vitest bench"
   },
   "keywords": [
     "ai",
@@ -28,12 +32,15 @@
     "@claude-flow/aidefence": "^3.0.0-alpha",
     "@claude-flow/shared": "^3.0.0-alpha"
   },
+  "optionalDependencies": {
+    "openai": "^4.0.0"
+  },
   "devDependencies": {
     "@types/node": "^20.0.0",
-    "@types/jest": "^29.0.0",
     "typescript": "^5.0.0",
-    "jest": "^29.0.0",
-    "eslint": "^8.0.0"
+    "vitest": "^4.0.16",
+    "eslint": "^8.0.0",
+    "tsx": "^4.7.1"
   },
   "files": [
     "dist",

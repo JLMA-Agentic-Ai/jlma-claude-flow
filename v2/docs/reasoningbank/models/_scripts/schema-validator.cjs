@@ -208,7 +208,17 @@ class SchemaValidator {
     const type = columnTypes[column] || 'TEXT';
 
     try {
-      this.db.exec(`ALTER TABLE ${table} ADD COLUMN ${column} ${type}`);
+      // SECURITY FIX: Validate identifiers and type to prevent SQL injection
+      const validTableName = /^[a-zA-Z_][a-zA-Z0-9_]*$/.test(table);
+      const validColumnName = /^[a-zA-Z_][a-zA-Z0-9_]*$/.test(column);
+      const validType = /^(TEXT|INTEGER|REAL|BLOB|NULL)$/i.test(type);
+
+      if (!validTableName || !validColumnName || !validType) {
+        throw new Error('Invalid table name, column name, or type');
+      }
+
+      const statement = this.db.prepare(`ALTER TABLE ${table} ADD COLUMN ${column} ${type}`);
+      statement.run();
       console.log(`✅ Added column ${column} to ${table}`);
     } catch (error) {
       console.log(`⚠️  Could not add column ${column}: ${error.message}`);

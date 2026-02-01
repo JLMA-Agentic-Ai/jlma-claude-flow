@@ -29,11 +29,22 @@ const benchmarkCommand: Command = {
     const outputFormat = ctx.flags.output as string || 'text';
 
     output.writeln();
-    output.writeln(output.bold('Performance Benchmark (Real Measurements)'));
+    output.writeln(output.bold('Performance Benchmark (V3 Optimized)'));
+    output.writeln(output.dim('Phase 2 Critical Optimizations Enabled'));
     output.writeln(output.dim('─'.repeat(60)));
 
     const spinner = output.createSpinner({ text: `Running ${suite} benchmarks...`, spinner: 'dots' });
     spinner.start();
+
+    // Import Phase 2 optimizations
+    let Phase2BenchmarkSuite: any;
+    try {
+      const module = await import('../../testing/src/performance/phase2-benchmark.js');
+      Phase2BenchmarkSuite = module.Phase2BenchmarkSuite;
+    } catch (error) {
+      // Fallback to regular benchmarks if Phase 2 not available
+      Phase2BenchmarkSuite = null;
+    }
 
     // Import real implementations
     const {
@@ -48,6 +59,76 @@ const benchmarkCommand: Command = {
 
     const results: { operation: string; mean: string; p95: string; p99: string; improvement: string }[] = [];
     const startTotal = Date.now();
+
+    // Check if Phase 2 optimizations are available and run comprehensive test
+    if (Phase2BenchmarkSuite && (suite === 'all' || suite === 'phase2')) {
+      spinner.setText('Running Phase 2 optimization benchmarks...');
+      try {
+        const phase2Suite = new Phase2BenchmarkSuite();
+        const phase2Results = await phase2Suite.runCompleteBenchmark();
+
+        spinner.succeed('Phase 2 benchmarks completed');
+
+        // Add Phase 2 results to output
+        results.push({
+          operation: 'CLI Startup (P2)',
+          mean: `${phase2Results.cliStartup.avgTimeMs.toFixed(1)}ms`,
+          p95: '-',
+          p99: '-',
+          improvement: phase2Results.cliStartup.passed ? output.success(`${phase2Results.cliStartup.improvement.toFixed(1)}x faster`) : output.error('Below target'),
+        });
+
+        results.push({
+          operation: 'HNSW Search (P2)',
+          mean: `${phase2Results.hnswSearch.avgTimeMs.toFixed(2)}ms`,
+          p95: '-',
+          p99: '-',
+          improvement: phase2Results.hnswSearch.passed ? output.success(`${phase2Results.hnswSearch.improvement.toFixed(0)}x faster`) : output.error('Below target'),
+        });
+
+        results.push({
+          operation: 'Flash Attention (P2)',
+          mean: `${phase2Results.flashAttention.speedup.toFixed(2)}x`,
+          p95: '-',
+          p99: '-',
+          improvement: phase2Results.flashAttention.passed ? output.success('Target met') : output.error('Below target'),
+        });
+
+        // Output summary
+        output.writeln();
+        output.printBox([
+          `Phase 2 Optimization Results`,
+          `Overall Score: ${phase2Results.overall.score}/100`,
+          `All Targets Met: ${phase2Results.overall.allTargetsMet ? output.success('YES') : output.error('NO')}`,
+          '',
+          phase2Results.overall.recommendations.length > 0 ? 'Recommendations:' : 'All optimizations working correctly!',
+          ...phase2Results.overall.recommendations.map(r => `• ${r}`)
+        ].join('\n'), 'Phase 2 Performance Summary');
+
+        if (outputFormat === 'json') {
+          output.printJson({ phase2Results, results });
+          return { success: true, data: { phase2Results, results } };
+        } else {
+          const totalTime = ((Date.now() - startTotal) / 1000).toFixed(2);
+
+          output.writeln();
+          output.printTable({
+            columns: [
+              { key: 'operation', header: 'Operation', width: 22 },
+              { key: 'mean', header: 'Result', width: 15 },
+              { key: 'improvement', header: 'Status', width: 25 },
+            ],
+            data: results,
+          });
+
+          return { success: true, data: { phase2Results, totalTime } };
+        }
+      } catch (error) {
+        spinner.fail('Phase 2 benchmarks failed, falling back to standard benchmarks');
+        output.printWarning(`Phase 2 error: ${error}`);
+        // Continue with standard benchmarks
+      }
+    }
 
     // Helper to compute percentiles
     const percentile = (arr: number[], p: number) => {

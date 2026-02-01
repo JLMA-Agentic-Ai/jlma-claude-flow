@@ -1,0 +1,103 @@
+{
+  "name": "@claude-flow/production-validation",
+  "version": "1.0.0",
+  "description": "AIS Production Validation Framework using Evidence Chains methodology",
+  "main": "dist/production-validation-orchestrator.js",
+  "types": "dist/production-validation-orchestrator.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "build:watch": "tsc --watch",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
+    "validate:production": "ts-node evidence-chains-example.ts",
+    "validate:integration": "ts-node -e \"require('./real-world-integration-validator').runValidation()\"",
+    "validate:communication": "ts-node -e \"require('./cross-container-communication-validator').runValidation()\"",
+    "validate:persistence": "ts-node -e \"require('./production-data-persistence-validator').runValidation()\"",
+    "lint": "eslint src/**/*.ts",
+    "lint:fix": "eslint src/**/*.ts --fix",
+    "docs": "typedoc --out docs src/",
+    "clean": "rm -rf dist coverage docs",
+    "prepack": "npm run clean && npm run build"
+  },
+  "keywords": [
+    "production-validation",
+    "evidence-chains",
+    "deployment-readiness",
+    "integration-testing",
+    "load-testing",
+    "database-validation",
+    "container-communication",
+    "devops",
+    "quality-assurance"
+  ],
+  "author": "Claude Flow Team",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ruvnet/claude-flow.git",
+    "directory": "tests/production-validation"
+  },
+  "dependencies": {
+    "node-fetch": "^2.6.7",
+    "@types/node-fetch": "^2.6.2"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/jest": "^29.5.0",
+    "@typescript-eslint/eslint-plugin": "^6.0.0",
+    "@typescript-eslint/parser": "^6.0.0",
+    "eslint": "^8.45.0",
+    "jest": "^29.6.0",
+    "ts-jest": "^29.1.0",
+    "ts-node": "^10.9.0",
+    "typedoc": "^0.24.0",
+    "typescript": "^5.0.0"
+  },
+  "jest": {
+    "preset": "ts-jest",
+    "testEnvironment": "node",
+    "roots": ["<rootDir>/src", "<rootDir>/tests"],
+    "testMatch": [
+      "**/__tests__/**/*.ts",
+      "**/?(*.)+(spec|test).ts"
+    ],
+    "collectCoverageFrom": [
+      "src/**/*.ts",
+      "!src/**/*.d.ts",
+      "!src/**/*.test.ts",
+      "!src/**/*.spec.ts"
+    ],
+    "coverageDirectory": "coverage",
+    "coverageReporters": [
+      "text",
+      "lcov",
+      "html"
+    ]
+  },
+  "eslintConfig": {
+    "parser": "@typescript-eslint/parser",
+    "extends": [
+      "eslint:recommended",
+      "@typescript-eslint/recommended"
+    ],
+    "parserOptions": {
+      "ecmaVersion": 2022,
+      "sourceType": "module"
+    },
+    "rules": {
+      "@typescript-eslint/no-unused-vars": "error",
+      "@typescript-eslint/no-explicit-any": "warn",
+      "prefer-const": "error",
+      "no-var": "error"
+    }
+  },
+  "files": [
+    "dist/**/*",
+    "README.md",
+    "package.json"
+  ],
+  "engines": {
+    "node": ">=16.0.0"
+  }
+}

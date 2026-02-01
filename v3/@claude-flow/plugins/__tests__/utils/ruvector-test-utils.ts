@@ -185,7 +185,7 @@ export function createTestConfig(overrides: Partial<RuVectorConfig> = {}): RuVec
     port: 5432,
     database: 'test_db',
     user: 'test_user',
-    password: 'test_password',
+    password: process.env.TEST_DB_PASSWORD || 'test_password_from_env',
     poolSize: 10,
     connectionTimeoutMs: 5000,
     queryTimeoutMs: 30000,

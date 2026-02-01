@@ -351,7 +351,9 @@ export class MemoryConsolidator {
       try {
         // Attach the source database
         const alias = `db_${path.basename(dbFile, '.db')}`;
-        await db.exec(`ATTACH DATABASE '${dbFile}' AS ${alias}`);
+        // SECURITY FIX: Use parameterized query to prevent SQL injection
+        const attachStmt = db.prepare(`ATTACH DATABASE ? AS ${alias}`);
+        await attachStmt.run(dbFile);
         
         // Get tables from source database
         const tables = await db.all(`
@@ -362,16 +364,18 @@ export class MemoryConsolidator {
         // Copy data from each memory-related table
         for (const table of tables) {
           try {
-            await db.exec(`
+            // SECURITY FIX: Use parameterized query to prevent SQL injection
+            const insertStmt = db.prepare(`
               INSERT OR IGNORE INTO memory_entries (key, value, namespace, timestamp, source)
-              SELECT 
-                COALESCE(key, ''), 
-                COALESCE(value, ''), 
+              SELECT
+                COALESCE(key, ''),
+                COALESCE(value, ''),
                 COALESCE(namespace, 'default'),
                 COALESCE(timestamp, strftime('%s', 'now') * 1000),
-                '${dbFile}'
+                ?
               FROM ${alias}.${table.name}
-              WHERE key IS NOT NULL AND value IS NOT NULL
+              WHERE key IS NOT NULL AND value IS NOT NULL`);
+            await insertStmt.run(dbFile);
             `);
           } catch (err) {
             // Table structure might be different, skip

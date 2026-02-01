@@ -1,0 +1,242 @@
+version: '3.8'
+
+services:
+  # AIS Plugin Core Service
+  ais-core:
+    build:
+      context: ../../
+      dockerfile: deployment/docker/Dockerfile
+      target: production
+    image: claude-flow/agent-immunity:3.0.0-alpha.1
+    container_name: ais-core
+    restart: unless-stopped
+
+    # Security context
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+
+    # Resource limits
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
+        reservations:
+          cpus: '0.5'
+          memory: 256M
+
+    # Environment variables
+    environment:
+      - NODE_ENV=production
+      - AIS_LOG_LEVEL=info
+      - AIS_HEALTH_PORT=8080
+      - AIS_METRICS_PORT=9090
+      - AIS_IMMUNITY_THRESHOLD=0.8
+      - AIS_EXTENDED_IMMUNITIES=true
+
+    # Networks
+    networks:
+      - ais-network
+      - monitoring
+
+    # Ports
+    ports:
+      - "8080:8080"  # Health check
+      - "9090:9090"  # Metrics
+
+    # Volumes (read-only where possible)
+    volumes:
+      - ais-logs:/app/logs
+      - ais-config:/app/config:ro
+      - /tmp:/tmp:rw,noexec,nosuid
+
+    # Health check
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+    # Labels for monitoring and management
+    labels:
+      - "com.claude-flow.service=ais-core"
+      - "com.claude-flow.version=3.0.0-alpha.1"
+      - "com.claude-flow.environment=production"
+      - "prometheus.scrape=true"
+      - "prometheus.port=9090"
+      - "prometheus.path=/metrics"
+
+  # Redis for AIS memory and caching
+  ais-redis:
+    image: redis:7-alpine
+    container_name: ais-redis
+    restart: unless-stopped
+
+    # Security
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+
+    # Resource limits
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+        reservations:
+          cpus: '0.25'
+          memory: 128M
+
+    # Configuration
+    command: >
+      redis-server
+      --appendonly yes
+      --appendfsync everysec
+      --maxmemory 200mb
+      --maxmemory-policy allkeys-lru
+      --requirepass ${REDIS_PASSWORD}
+
+    # Environment
+    environment:
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-ais-secure-password}
+
+    # Networks
+    networks:
+      - ais-network
+
+    # Volumes
+    volumes:
+      - ais-redis-data:/data
+      - /tmp:/tmp:rw,noexec,nosuid
+
+    # Health check
+    healthcheck:
+      test: ["CMD", "redis-cli", "--no-auth-warning", "-a", "${REDIS_PASSWORD:-ais-secure-password}", "ping"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  # Prometheus for metrics collection
+  ais-prometheus:
+    image: prom/prometheus:latest
+    container_name: ais-prometheus
+    restart: unless-stopped
+
+    # Security
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    user: "65534:65534"  # nobody user
+
+    # Configuration
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=7d'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--web.enable-lifecycle'
+
+    # Networks
+    networks:
+      - monitoring
+
+    # Ports
+    ports:
+      - "9091:9090"  # Prometheus UI
+
+    # Volumes
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ais-prometheus-data:/prometheus
+      - /tmp:/tmp:rw,noexec,nosuid
+
+    # Health check
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:9090/-/healthy"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Grafana for monitoring dashboards
+  ais-grafana:
+    image: grafana/grafana:latest
+    container_name: ais-grafana
+    restart: unless-stopped
+
+    # Security
+    security_opt:
+      - no-new-privileges:true
+    user: "472:472"  # grafana user
+
+    # Environment
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-ais-admin}
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_SECURITY_ALLOW_EMBEDDING=true
+      - GF_AUTH_ANONYMOUS_ENABLED=false
+
+    # Networks
+    networks:
+      - monitoring
+
+    # Ports
+    ports:
+      - "3000:3000"  # Grafana UI
+
+    # Volumes
+    volumes:
+      - ais-grafana-data:/var/lib/grafana
+      - ./monitoring/grafana/dashboards:/etc/grafana/provisioning/dashboards:ro
+      - ./monitoring/grafana/datasources:/etc/grafana/provisioning/datasources:ro
+      - /tmp:/tmp:rw,noexec,nosuid
+
+    # Health check
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+# Networks
+networks:
+  ais-network:
+    driver: bridge
+    internal: false
+    ipam:
+      config:
+        - subnet: 172.20.0.0/24
+
+  monitoring:
+    driver: bridge
+    internal: false
+    ipam:
+      config:
+        - subnet: 172.21.0.0/24
+
+# Volumes
+volumes:
+  ais-logs:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ./logs
+
+  ais-config:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ./config
+
+  ais-redis-data:
+    driver: local
+
+  ais-prometheus-data:
+    driver: local
+
+  ais-grafana-data:
+    driver: local

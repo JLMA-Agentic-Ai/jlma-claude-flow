@@ -39,8 +39,9 @@ export async function launchUI(args = []) {
                 ? 'start'
                 : 'xdg-open';
 
-          const { exec } = await import('child_process');
-          exec(`${openCommand} http://localhost:${port}/console`);
+          // SECURITY FIX: Use spawn with array args to prevent command injection
+          const { spawn } = await import('child_process');
+          spawn(openCommand, [`http://localhost:${port}/console`], { detached: true, stdio: 'ignore' });
         } catch {
           // Browser opening failed, that's okay
         }
