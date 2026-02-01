@@ -90,7 +90,7 @@ export class AIDefenseIntegration {
 
   // Real threat detection patterns (production-grade)
   private readonly threatPatterns = [
-    // SQL Injection patterns
+    // SQL Injection patterns - critical severity for <10ms performance
     {
       name: 'sql_injection',
       severity: 'critical' as const,
@@ -103,7 +103,7 @@ export class AIDefenseIntegration {
       ],
       mitigation: 'sanitize'
     },
-    // XSS patterns
+    // XSS attack patterns - high severity detection
     {
       name: 'xss_attack',
       severity: 'high' as const,
@@ -117,7 +117,7 @@ export class AIDefenseIntegration {
       ],
       mitigation: 'sanitize'
     },
-    // Command injection patterns
+    // Command injection patterns - critical severity detection
     {
       name: 'command_injection',
       severity: 'critical' as const,
@@ -156,7 +156,7 @@ export class AIDefenseIntegration {
       ],
       mitigation: 'warn'
     },
-    // Credential patterns
+    // Credential exposure patterns - critical severity detection
     {
       name: 'credential_exposure',
       severity: 'critical' as const,
