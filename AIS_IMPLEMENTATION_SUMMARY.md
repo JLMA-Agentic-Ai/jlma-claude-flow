@@ -333,7 +333,7 @@ const result = await ais.scanAgentInput('my-agent', userInput, {
 
 **Project Status: ✅ COMPLETE AND PRODUCTION-READY**
 
-**Repository**: `/workspaces/jlmaworkspace/src/ais-plugin/`
+**Repository**: `/workspaces/jlmaworkspace/base_projects/jlma-claude-flow/src/ais-plugin/`
 **Atomic Commits**: 3 commits with conventional format
 **Total Implementation Time**: ~3 days
 **Code Quality**: Production-grade with full TypeScript types

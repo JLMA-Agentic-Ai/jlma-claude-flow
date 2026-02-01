@@ -5,7 +5,7 @@
 
 import { describe, it, expect } from 'vitest';
 import { createAIDefence } from '../v3/@claude-flow/aidefence/src/index.js';
-import { createSecurityValidator } from '../antigravity_claude-flow_mcp_router/src/security-validator.js';
+import { createSecurityValidator } from '../../../antigravity_claude-flow_mcp_router/src/security-validator.js';
 
 describe('Attack Vector Stress Tests', () => {
   describe('OWASP Top 10 Attack Simulations', () => {
@@ -130,8 +130,8 @@ describe('Attack Vector Stress Tests', () => {
           validator.validateMessage(attack, 'integrity-test');
         } catch (e) {
           if (e.code === 'BLOCKED_PROPERTY' ||
-              e.code === 'PROTOTYPE_POLLUTION' ||
-              e.code === 'SECURITY_VIOLATION') {
+            e.code === 'PROTOTYPE_POLLUTION' ||
+            e.code === 'SECURITY_VIOLATION') {
             blockedAttempts++;
           }
         }

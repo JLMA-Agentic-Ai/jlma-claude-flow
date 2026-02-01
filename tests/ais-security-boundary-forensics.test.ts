@@ -8,7 +8,7 @@
 
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { createAIDefence } from '../v3/@claude-flow/aidefence/src/index.js';
-import { createSecurityValidator } from '../antigravity_claude-flow_mcp_router/src/security-validator.js';
+import { createSecurityValidator } from '../../../antigravity_claude-flow_mcp_router/src/security-validator.js';
 
 describe('AIS Security Boundary Forensics - Evidence Chains', () => {
   let aidefence: any;
@@ -303,7 +303,7 @@ describe('AIS Security Boundary Forensics - Evidence Chains', () => {
         // Test in JSON parsing
         try {
           securityValidator.validateMessage(
-            JSON.stringify({"jsonrpc":"2.0","method":"render","params":{"html":xss},"id":1}),
+            JSON.stringify({ "jsonrpc": "2.0", "method": "render", "params": { "html": xss }, "id": 1 }),
             'xss-test'
           );
         } catch (e) {

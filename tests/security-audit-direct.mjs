@@ -4,11 +4,11 @@
  */
 
 import { createAIDefence } from '../v3/@claude-flow/aidefence/dist/index.js';
-import { createSecurityValidator, PRODUCTION_SECURITY_CONFIG } from '../antigravity_claude-flow_mcp_router/src/security-validator.js';
+import { createSecurityValidator, PRODUCTION_SECURITY_CONFIG } from '../../../antigravity_claude-flow_mcp_router/src/security-validator.js';
 
 console.log('🔒 AIS Security Boundary Forensics Investigation');
 console.log('📋 Evidence Chains Methodology - Direct Testing');
-console.log('=' .repeat(80));
+console.log('='.repeat(80));
 
 const evidenceChain = [];
 
@@ -42,7 +42,7 @@ async function runDirectSecurityTest() {
     );
 
     console.log('\n📍 Evidence Chain 1: Fail-Closed Security Verification');
-    console.log('-' .repeat(60));
+    console.log('-'.repeat(60));
 
     // Test 1.1: Critical threat detection (must fail-closed)
     try {
@@ -69,7 +69,7 @@ async function runDirectSecurityTest() {
     try {
       for (let i = 0; i < 70; i++) { // Exceed production limit of 60
         securityValidator.validateMessage(
-          JSON.stringify({jsonrpc: "2.0", method: "test", id: i}),
+          JSON.stringify({ jsonrpc: "2.0", method: "test", id: i }),
           'rate-test-client'
         );
       }
@@ -103,7 +103,7 @@ async function runDirectSecurityTest() {
     );
 
     console.log('\n📍 Evidence Chain 2: OWASP Attack Vector Validation');
-    console.log('-' .repeat(60));
+    console.log('-'.repeat(60));
 
     const owaspAttacks = [
       {
@@ -173,7 +173,7 @@ async function runDirectSecurityTest() {
     );
 
     console.log('\n📍 Evidence Chain 3: Circuit Breaker Stress Testing');
-    console.log('-' .repeat(60));
+    console.log('-'.repeat(60));
 
     // Test 3.1: JSON validation circuit breaker
     const prototypePollutionAttempts = [
@@ -223,7 +223,7 @@ async function runDirectSecurityTest() {
     }
 
     console.log('\n📍 Evidence Chain 4: Real Integration Under Load');
-    console.log('-' .repeat(60));
+    console.log('-'.repeat(60));
 
     // Test 4.1: Concurrent threat detection
     const concurrentStart = performance.now();
@@ -278,7 +278,7 @@ async function runDirectSecurityTest() {
     }
 
     console.log('\n📍 Evidence Chain 5: Advanced Security Features');
-    console.log('-' .repeat(60));
+    console.log('-'.repeat(60));
 
     // Test 5.1: Learning system validation
     try {
@@ -352,7 +352,7 @@ async function runDirectSecurityTest() {
 
   // Generate comprehensive report
   console.log('\n📊 COMPREHENSIVE SECURITY BOUNDARY FORENSICS REPORT');
-  console.log('=' .repeat(80));
+  console.log('='.repeat(80));
 
   const passed = evidenceChain.filter(e => e.severity === 'PASS').length;
   const failed = evidenceChain.filter(e => e.severity === 'FAIL').length;
@@ -403,8 +403,8 @@ async function runDirectSecurityTest() {
   console.log(`   📊 Evidence chain integrity: VERIFIED`);
 
   const finalVerdict = failed === 0 && securityScore >= 80 ? 'SECURITY BOUNDARIES VALIDATED' :
-                     failed === 0 ? 'PARTIAL VALIDATION - WARNINGS PRESENT' :
-                     'SECURITY VULNERABILITIES DETECTED';
+    failed === 0 ? 'PARTIAL VALIDATION - WARNINGS PRESENT' :
+      'SECURITY VULNERABILITIES DETECTED';
 
   console.log(`\n🎯 FINAL VERDICT: ${finalVerdict}`);
 
