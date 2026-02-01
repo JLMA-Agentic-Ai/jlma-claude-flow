@@ -40,17 +40,20 @@ Implement `@claude-flow/agent-immunity` as a **lightweight CF plugin** (~500 LOC
 | **Fleet Broadcast** | `@claude-flow/swarm` | `cf_hive` for immunity pattern sharing |
 | **Semantic Embeddings** | `@ruvector/sona` | Intent vs Code coherence |
 
-### What We Build (~500 LOC)
+### What We Build (~550 LOC new code)
 
 | File | LOC | Description |
 |:-----|:----|:------------|
 | `plugin.ts` | ~80 | Hook registration, initialization |
-| `vector-service.ts` | ~120 | Orchestrates all analyzers, computes score |
-| `vectors/performance.ts` | ~50 | Regex patterns for O(n²), sync I/O |
-| `vectors/dependencies.ts` | ~50 | Lockfile hash, license check |
-| `vectors/coherence.ts` | ~100 | Semantic diff (intent vs code) |
+| `vector-service.ts` | ~120 | Orchestrates all 11 analyzers, computes score |
 | `antibody.ts` | ~100 | Wraps aidefence suggestions |
-| **Total** | **~500** | |
+| `vectors/security.ts` | ~10 | Wrapper for aidefence |
+| `vectors/truth.ts` | ~30 | HNSW hallucination check |
+| `vectors/coherence.ts` | ~100 | SONA semantic diff |
+| `vectors/performance.ts` | ~50 | Regex patterns |
+| `vectors/dependencies.ts` | ~50 | Lockfile + CVE |
+| `vectors/extended/*.ts` | ~170 | 6 opt-in vectors |
+| **Total** | **~550** | |
 
 ---
 
@@ -83,25 +86,37 @@ flowchart LR
 
 ---
 
-## Health Vectors
+## Health Vectors (11 Total)
 
-### Core (Always Enabled)
+### Core Vectors (5) - Always Enabled
 
-| Vector | Weight | Implementation |
-|:-------|:-------|:---------------|
-| **Security** | 0.30 | `aidefence.analyze()` |
-| **Truth** | 0.25 | HNSW similarity check for hallucinations |
-| **Coherence** | 0.25 | SONA embeddings: `cosine(intent, code)` |
-| **Performance** | 0.10 | Regex: `readFileSync`, nested loops |
-| **Dependencies** | 0.10 | Lockfile hash, CVE check |
+| # | Vector | Weight | CF Reuse | New LOC | Implementation |
+|:--|:-------|:-------|:---------|:--------|:---------------|
+| 1 | **Security** | 0.25 | ✅ aidefence | ~10 | `aidefence.analyze()` - 50+ SAST patterns |
+| 2 | **Truth** | 0.20 | ✅ memory | ~30 | HNSW similarity for hallucination detection |
+| 3 | **Coherence** | 0.25 | ⚠️ SONA | ~100 | Semantic diff: `cosine(intent, code)` |
+| 4 | **Performance** | 0.15 | ❌ | ~50 | Regex: `readFileSync`, O(n²), nested loops |
+| 5 | **Dependencies** | 0.15 | ❌ | ~50 | Lockfile hash, license audit, CVE check |
 
-### Extended (Opt-In)
+### Extended Vectors (6) - Opt-In per Project
 
-| Vector | Implementation |
-|:-------|:---------------|
-| Privacy/PII | `aidefence.containsPII()` |
-| Cost/Tokens | Token counter, loop detector |
-| Observability | AST check for logging calls |
+| # | Vector | Weight | CF Reuse | New LOC | Implementation |
+|:--|:-------|:-------|:---------|:--------|:---------------|
+| 6 | **Privacy/PII** | 0.15 | ✅ aidefence | ~10 | `aidefence.containsPII()` |
+| 7 | **Cost/Tokens** | 0.10 | ❌ | ~30 | Token counter, infinite loop detector |
+| 8 | **Observability** | 0.10 | ❌ | ~40 | AST check for logging/tracing calls |
+| 9 | **Accessibility** | 0.10 | ❌ | ~40 | ARIA/WCAG rules for UI components |
+| 10 | **Reproducibility** | 0.10 | ❌ | ~30 | Determinism check (random, Date.now) |
+| 11 | **Documentation** | 0.05 | ❌ | ~30 | JSDoc/TSDoc presence check |
+
+### Summary
+
+| Category | Vectors | Uses Existing CF | New Code Required |
+|:---------|:--------|:-----------------|:------------------|
+| Core | 5 | 2 (Security, Truth) | 3 (~200 LOC) |
+| Extended | 6 | 1 (PII) | 5 (~170 LOC) |
+| **Total** | **11** | **3** | **8 (~370 LOC)** |
+
 
 ---
 
