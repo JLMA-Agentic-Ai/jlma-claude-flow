@@ -8,7 +8,7 @@
 
 ## TL;DR
 
-A lightweight (~500 LOC) plugin that intercepts agent actions, analyzes against health vectors, and suggests repairs—**100% reusing existing CF infrastructure**.
+A lightweight (~550 LOC) plugin that intercepts agent actions, analyzes against **11 built-in immunities**, and suggests repairs—**100% reusing existing CF infrastructure**. Extensible via plugin registry.
 
 ---
 
@@ -45,7 +45,7 @@ Implement `@claude-flow/agent-immunity` as a **lightweight CF plugin** (~500 LOC
 | File | LOC | Description |
 |:-----|:----|:------------|
 | `plugin.ts` | ~80 | Hook registration, initialization |
-| `vector-service.ts` | ~120 | Orchestrates all 11 analyzers, computes score |
+| `immunity-service.ts` | ~120 | Orchestrates all 11 immunities, computes score |
 | `antibody.ts` | ~100 | Wraps aidefence suggestions |
 | `vectors/security.ts` | ~10 | Wrapper for aidefence |
 | `vectors/truth.ts` | ~30 | HNSW hallucination check |
@@ -63,7 +63,7 @@ Implement `@claude-flow/agent-immunity` as a **lightweight CF plugin** (~500 LOC
 flowchart LR
   subgraph "@claude-flow/agent-immunity"
     H["Hook: PreAgentAction"]
-    V["VectorService"]
+    I["ImmunityService"]
     A["Antibody"]
   end
   
@@ -75,33 +75,33 @@ flowchart LR
   end
   
   Agent["CF Agent"] -- "trajectory step" --> H
-  H --> V
-  V --> AD
-  V --> MEM
-  V --> SONA
-  V -- "unhealthy" --> A
+  H --> I
+  I --> AD
+  I --> MEM
+  I --> SONA
+  I -- "unhealthy" --> A
   A -- "repair suggestion" --> Agent
   A -- "pattern" --> HIVE
 ```
 
 ---
 
-## Health Vectors (11 Total)
+## Immunities (11 Built-In, Extensible)
 
-### Core Vectors (5) - Always Enabled
+### Core Immunities (5) - Always Enabled
 
-| # | Vector | Weight | CF Reuse | New LOC | Implementation |
-|:--|:-------|:-------|:---------|:--------|:---------------|
+| # | Immunity | Weight | CF Reuse | New LOC | Implementation |
+|:--|:---------|:-------|:---------|:--------|:---------------|
 | 1 | **Security** | 0.25 | ✅ aidefence | ~10 | `aidefence.analyze()` - 50+ SAST patterns |
 | 2 | **Truth** | 0.20 | ✅ memory | ~30 | HNSW similarity for hallucination detection |
 | 3 | **Coherence** | 0.25 | ⚠️ SONA | ~100 | Semantic diff: `cosine(intent, code)` |
 | 4 | **Performance** | 0.15 | ❌ | ~50 | Regex: `readFileSync`, O(n²), nested loops |
 | 5 | **Dependencies** | 0.15 | ❌ | ~50 | Lockfile hash, license audit, CVE check |
 
-### Extended Vectors (6) - Opt-In per Project
+### Extended Immunities (6) - Opt-In per Project
 
-| # | Vector | Weight | CF Reuse | New LOC | Implementation |
-|:--|:-------|:-------|:---------|:--------|:---------------|
+| # | Immunity | Weight | CF Reuse | New LOC | Implementation |
+|:--|:---------|:-------|:---------|:--------|:---------------|
 | 6 | **Privacy/PII** | 0.15 | ✅ aidefence | ~10 | `aidefence.containsPII()` |
 | 7 | **Cost/Tokens** | 0.10 | ❌ | ~30 | Token counter, infinite loop detector |
 | 8 | **Observability** | 0.10 | ❌ | ~40 | AST check for logging/tracing calls |
@@ -109,13 +109,37 @@ flowchart LR
 | 10 | **Reproducibility** | 0.10 | ❌ | ~30 | Determinism check (random, Date.now) |
 | 11 | **Documentation** | 0.05 | ❌ | ~30 | JSDoc/TSDoc presence check |
 
+### Extensibility
+
+Custom immunities can be registered via the plugin API:
+
+```typescript
+import { ImmunityService, Immunity } from '@claude-flow/agent-immunity';
+
+// Define custom immunity
+const myCustomImmunity: Immunity = {
+  id: 'my-org/custom-lint',
+  name: 'Custom Lint Rules',
+  weight: 0.10,
+  enabled: true,
+  analyze: async (step) => {
+    // Custom analysis logic
+    return { passed: true, score: 1.0, details: [] };
+  }
+};
+
+// Register at runtime
+immunityService.register(myCustomImmunity);
+```
+
 ### Summary
 
-| Category | Vectors | Uses Existing CF | New Code Required |
-|:---------|:--------|:-----------------|:------------------|
+| Category | Immunities | Uses Existing CF | New Code Required |
+|:---------|:-----------|:-----------------|:------------------|
 | Core | 5 | 2 (Security, Truth) | 3 (~200 LOC) |
 | Extended | 6 | 1 (PII) | 5 (~170 LOC) |
-| **Total** | **11** | **3** | **8 (~370 LOC)** |
+| Custom | ∞ | - | User-defined |
+| **Total Built-In** | **11** | **3** | **8 (~370 LOC)** |
 
 
 ---
@@ -126,18 +150,17 @@ flowchart LR
 // plugin.ts
 import { HookBuilder, HookEvent, HookPriority } from '@claude-flow/plugins';
 import { createAIDefence } from '@claude-flow/aidefence';
-import { VectorService } from './vector-service';
+import { ImmunityService } from './immunity-service';
 import { Antibody } from './antibody';
 
 const aidefence = createAIDefence();
-const vectors = new VectorService({ aidefence });
-const antibody = new Antibody();
+const immunities = new ImmunityService({ aidefence });
 
 export const immunityHook = new HookBuilder(HookEvent.PreAgentAction)
   .withName('immunity-scan')
   .withPriority(HookPriority.Critical)
   .handle(async (ctx) => {
-    const report = await vectors.analyze(ctx.data.trajectory);
+    const report = await immunities.analyze(ctx.data.trajectory);
     
     if (report.score < 0.7) {
       const suggestion = await antibody.synthesize(report);
@@ -150,16 +173,29 @@ export const immunityHook = new HookBuilder(HookEvent.PreAgentAction)
 ```
 
 ```typescript
-// vector-service.ts
-export class VectorService {
+// immunity-service.ts
+export class ImmunityService {
+  private readonly immunities: Map<string, Immunity> = new Map();
+  
+  constructor(config: ImmunityConfig) {
+    // Register built-in immunities
+    this.register(new SecurityImmunity(config.aidefence));
+    this.register(new TruthImmunity());
+    this.register(new CoherenceImmunity());
+    this.register(new PerformanceImmunity());
+    this.register(new DependenciesImmunity());
+  }
+  
+  register(immunity: Immunity): void {
+    this.immunities.set(immunity.id, immunity);
+  }
+  
   async analyze(step: TrajectoryStep): Promise<ImmunityReport> {
-    const results = await Promise.all([
-      this.security.analyze(step),   // aidefence
-      this.truth.analyze(step),       // HNSW
-      this.coherence.analyze(step),   // SONA
-      this.performance.analyze(step), // regex
-      this.dependencies.analyze(step) // lockfile
-    ]);
+    const results = await Promise.all(
+      [...this.immunities.values()]
+        .filter(i => i.enabled)
+        .map(i => i.analyze(step))
+    );
     
     return {
       score: this.weightedAverage(results),
@@ -181,14 +217,16 @@ v3/@claude-flow/agent-immunity/
 ├── src/
 │   ├── index.ts           # Exports
 │   ├── plugin.ts          # Hook registration
-│   ├── vector-service.ts  # Orchestrator
-│   ├── antibody.ts        # Repair suggestions
-│   └── vectors/
-│       ├── security.ts    # Wraps aidefence
-│       ├── truth.ts       # HNSW check
-│       ├── coherence.ts   # SONA semantic diff
-│       ├── performance.ts # Regex patterns
-│       └── dependencies.ts # Lockfile check
+│   ├── immunity-service.ts  # Orchestrator + Registry
+│   ├── antibody.ts           # Repair suggestions
+│   └── immunities/
+│       ├── index.ts          # Immunity interface
+│       ├── security.ts       # Wraps aidefence
+│       ├── truth.ts          # HNSW check
+│       ├── coherence.ts      # SONA semantic diff
+│       ├── performance.ts    # Regex patterns
+│       ├── dependencies.ts   # Lockfile check
+│       └── extended/         # Opt-in immunities
 └── __tests__/
     └── vector-service.test.ts
 ```
@@ -197,10 +235,11 @@ v3/@claude-flow/agent-immunity/
 
 ## Verification Plan
 
-1. **Unit Tests**: Each vector analyzer
+1. **Unit Tests**: Each immunity analyzer
 2. **Integration Test**: Mock agent trajectory → verify blocking
 3. **Latency Benchmark**: Target `<30ms` per step
 4. **Fleet Test**: Verify `cf_hive` pattern broadcast
+5. **Extensibility Test**: Register custom immunity → verify invocation
 
 ---
 
