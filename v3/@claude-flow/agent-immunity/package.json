@@ -1,0 +1,45 @@
+{
+  "name": "@claude-flow/agent-immunity",
+  "version": "3.0.0-alpha.1",
+  "description": "Biological immune system for autonomous agents - prevents drift, hallucination, and maintains operational integrity",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "test": "jest",
+    "dev": "tsc --watch",
+    "lint": "eslint src/**/*.ts",
+    "type-check": "tsc --noEmit"
+  },
+  "keywords": [
+    "ai",
+    "agent",
+    "immunity",
+    "security",
+    "drift-prevention",
+    "claude-flow",
+    "autonomous-systems"
+  ],
+  "author": "Claude Flow Team",
+  "license": "MIT",
+  "dependencies": {
+    "@claude-flow/hooks": "^3.0.0-alpha",
+    "@claude-flow/memory": "^3.0.0-alpha",
+    "@claude-flow/aidefence": "^3.0.0-alpha",
+    "@claude-flow/shared": "^3.0.0-alpha"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/jest": "^29.0.0",
+    "typescript": "^5.0.0",
+    "jest": "^29.0.0",
+    "eslint": "^8.0.0"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "publishConfig": {
+    "access": "public"
+  }
+}
