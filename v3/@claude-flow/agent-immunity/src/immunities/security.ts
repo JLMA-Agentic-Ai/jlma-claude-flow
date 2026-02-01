@@ -8,6 +8,7 @@
  */
 
 import type { Immunity, ImmunityViolation } from '../immunity-service';
+import type { ImmunityAnalysisResult, ActionData } from '../types/immunity';
 import { globalFailSafeManager, SecurityLevel } from '../security/fail-safe-manager';
 import { globalAIDefense, type AIDefenseResult, type ThreatDetection } from '../security/aidefence-integration';
 
@@ -21,6 +22,9 @@ import { globalAIDefense, type AIDefenseResult, type ThreatDetection } from '../
 export class SecurityImmunity implements Immunity {
   public readonly name = 'security';
   public readonly weight = 0.25; // 25% - Most critical in ADR-001 weight distribution
+  public readonly category = 'core' as const;
+  public readonly version = '3.0.0-alpha.2';
+  public readonly description = 'Real-time threat detection with fail-closed security patterns';
 
   private readonly enableLearning: boolean;
   private initialized = false;
@@ -49,20 +53,20 @@ export class SecurityImmunity implements Immunity {
   /**
    * Analyze action for security threats using real aidefence - FAIL-CLOSED IMPLEMENTATION
    */
-  public async analyze(actionData: any): Promise<{
-    score: number;
-    violations: ImmunityViolation[];
-  }> {
+  public async analyze(actionData: ActionData): Promise<ImmunityAnalysisResult> {
     const startTime = performance.now();
 
     // FAIL-CLOSED: If not initialized, DENY ALL
     if (!this.initialized) {
-      return globalFailSafeManager.executeSecureOperation(
+      await globalFailSafeManager.executeSecureOperation(
         async () => { throw new Error('AI Defense not initialized'); },
         SecurityLevel.DENY_ALL,
         'SecurityImmunity',
         { reason: 'ai_defense_not_initialized' }
-      ).then(() => ({
+      );
+
+      const analysisTime = performance.now() - startTime;
+      return {
         score: 0.0, // COMPLETE DENIAL
         violations: [{
           type: 'security_threat',
@@ -70,8 +74,10 @@ export class SecurityImmunity implements Immunity {
           score: 0.0,
           description: 'SECURITY LOCKDOWN: AI Defense not initialized - all operations denied',
           details: { failClosed: true, securityLevel: SecurityLevel.DENY_ALL }
-        }]
-      }));
+        }],
+        confidence: 1.0,
+        analysisTime
+      };
     }
 
     // Execute security analysis with fail-closed protection
@@ -162,6 +168,7 @@ export class SecurityImmunity implements Immunity {
 
     // FAIL-CLOSED: On any execution failure, DENY ALL
     if (!analysisResult.success) {
+      const analysisTime = performance.now() - startTime;
       return {
         score: 0.0,
         violations: [{
@@ -174,11 +181,20 @@ export class SecurityImmunity implements Immunity {
             securityLevel: analysisResult.securityLevel,
             executionFailed: true
           }
-        }]
+        }],
+        confidence: 1.0,
+        analysisTime
       };
     }
 
-    return analysisResult.result!;
+    const result = analysisResult.result!;
+    const analysisTime = performance.now() - startTime;
+
+    return {
+      ...result,
+      confidence: result.violations.length === 0 ? 0.8 : 0.2, // Low confidence when threats found
+      analysisTime
+    };
   }
 
   /**
