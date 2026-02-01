@@ -1,0 +1,15 @@
+{
+    "timestamp": "2026-02-01T18:51:12+00:00",
+    "system": {
+        "nodeVersion": "v24.11.1",
+        "platform": "Linux",
+        "arch": "x86_64",
+        "memory": "66.53"
+    },
+    "targets": {
+        "threatDetectionMaxMs": 100,
+        "agentRegistrationMaxMs": 10,
+        "systemHealthCheckMaxMs": 50,
+        "memoryIncreaseMaxMB": 50
+    }
+}
