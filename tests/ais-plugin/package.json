@@ -1,0 +1,64 @@
+{
+  "name": "@claude-flow/ais-plugin-tests",
+  "version": "1.0.0",
+  "description": "AQE Testing Suite for Agent Immunity System Plugin",
+  "private": true,
+  "scripts": {
+    "test": "./run-aqe-tests.sh all",
+    "test:unit": "./run-aqe-tests.sh unit",
+    "test:integration": "./run-aqe-tests.sh integration",
+    "test:performance": "./run-aqe-tests.sh performance",
+    "test:e2e": "./run-aqe-tests.sh e2e",
+    "test:chaos": "./run-aqe-tests.sh chaos",
+    "test:coverage": "./run-aqe-tests.sh coverage",
+    "test:watch": "jest --config=jest.config.js --watch",
+    "test:debug": "node --inspect-brk node_modules/.bin/jest --config=jest.config.js --runInBand",
+    "benchmark": "npm run test:performance",
+    "validate": "npm run test && npm run benchmark",
+    "report": "open reports/ais-test-report.html",
+    "coverage": "open coverage/index.html"
+  },
+  "keywords": [
+    "ais",
+    "agent-immunity",
+    "security",
+    "testing",
+    "aqe",
+    "quality-engineering",
+    "chaos-engineering",
+    "performance"
+  ],
+  "author": "Claude Flow AQE Team",
+  "license": "MIT",
+  "devDependencies": {
+    "@jest/globals": "^29.7.0",
+    "@types/jest": "^29.5.5",
+    "@types/node": "^20.8.0",
+    "@types/uuid": "^9.0.5",
+    "jest": "^29.7.0",
+    "jest-html-reporters": "^3.1.5",
+    "jest-junit": "^16.0.0",
+    "ts-jest": "^29.1.1",
+    "typescript": "^5.2.2"
+  },
+  "dependencies": {
+    "uuid": "^9.0.1"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ruvnet/claude-flow.git",
+    "directory": "tests/ais-plugin"
+  },
+  "jest": {
+    "projects": [
+      {
+        "displayName": "AIS Plugin AQE Tests",
+        "testMatch": ["<rootDir>/**/*.test.ts"]
+      }
+    ]
+  }
+}
